@@ -4,14 +4,14 @@
 #include <stdio.h>
 #include <limits.h>
 
+void exibir_matriz (int *matriz, int n_linhas, int n_colunas, int maior_num);
+
 int main () {
     int linhas = 3;
     int colunas = 3;
     int maior1 = INT_MIN;
     int maior2 = INT_MIN;
-    int qtd_digitos_maior1 = 1;
-    int qtd_digitos_maior2 = 1;
-    int qtd_digitos_maior_geral;
+    int maior_geral = INT_MIN;
 
     printf("\n--- Soma Matrizes --- \n\n");
 
@@ -22,6 +22,7 @@ int main () {
 
     int matriz1[linhas][colunas];
     int matriz2[linhas][colunas];
+    int matriz_soma[linhas][colunas];
 
     printf("Defina os valores da matriz 1: \n");
 
@@ -54,76 +55,46 @@ int main () {
 
     printf("Matriz 1: \n");
 
-    while (maior1 >= 10) {
-        maior1 = maior1 / 10;
-        qtd_digitos_maior1++;
-    }
-
-    for (int i = 0; i < linhas; i++) {
-        printf("| ");
-
-        for (int j = 0; j < colunas; j++) {
-            int qtd_digitos_num = 1;
-
-            for (int num = matriz1[i][j]; num >= 10; num /= 10) {
-                qtd_digitos_num++;
-            }
-
-            for (int acrescenta_digitos = qtd_digitos_maior1 - qtd_digitos_num; acrescenta_digitos > 0; acrescenta_digitos--) {
-                printf("0");
-            }
-
-            printf("%d%s", matriz1[i][j], j == colunas - 1 ? " |\n" : ", ");
-        }
-    }
+    exibir_matriz(&matriz1[0][0], linhas, colunas, maior1);
 
     printf("\nMatriz 2: \n");
 
-    while (maior2 >= 10) {
-        maior2 = maior2 / 10;
-        qtd_digitos_maior2++;
-    }
-
-    for (int i = 0; i < linhas; i++) {
-        printf("| ");
-
-        for (int j = 0; j < colunas; j++) {
-            int qtd_digitos_num = 1;
-
-            for (int num = matriz2[i][j]; num >= 10; num /= 10) {
-                qtd_digitos_num++;
-            }
-
-            for (int acrescenta_digitos = qtd_digitos_maior2 - qtd_digitos_num; acrescenta_digitos > 0; acrescenta_digitos--) {
-                printf("0");
-            }
-
-            printf("%d%s", matriz2[i][j], j == colunas - 1 ? " |\n" : ", ");
-        }
-    }
+    exibir_matriz(&matriz2[0][0], linhas, colunas, maior2);
 
     printf("\nA soma de matriz 1 com matriz 2 dá a matriz soma abaixo: \n");
 
-    qtd_digitos_maior_geral = qtd_digitos_maior1 > qtd_digitos_maior2 ? qtd_digitos_maior1 : qtd_digitos_maior2;
-
     for (int i = 0; i < linhas; i++) {
-        printf("| ");
-
         for (int j = 0; j < colunas; j++) {
-            int qtd_digitos_num = 1;
-            int soma_celula = matriz1[i][j] + matriz2[i][j];
+            matriz_soma[i][j] = matriz1[i][j] + matriz2[i][j];
 
-            for (int num = soma_celula; num >= 10; num /= 10) {
-                qtd_digitos_num++;
+            if (matriz_soma[i][j] > maior_geral) {
+                maior_geral = matriz_soma[i][j];
             }
-
-            for (int acrescenta_digitos = qtd_digitos_maior_geral - qtd_digitos_num; acrescenta_digitos > 0; acrescenta_digitos--) {
-                printf("0");
-            }
-
-            printf("%d%s", soma_celula, j == colunas - 1 ? " |\n" : ", ");
         }
     }
 
+    exibir_matriz(&matriz_soma[0][0], linhas, colunas, maior_geral);
+
     return 0;
+}
+
+void exibir_matriz (int *matriz, int n_linhas, int n_colunas, int maior_num) {
+    int qtd_digitos_max = 1;
+    while (maior_num >= 10) {
+        maior_num /= 10;
+        qtd_digitos_max++;
+    }
+    for (int i = 0; i < n_linhas; i++) {
+        printf("| ");
+        for (int j = 0; j < n_colunas; j++) {
+            int qtd_digitos_num = 1;
+            for (int num = matriz[i * n_colunas + j]; num >= 10; num /= 10) {
+                qtd_digitos_num++;
+            }
+            for (int digitos_a_mais = qtd_digitos_max - qtd_digitos_num; digitos_a_mais > 0; digitos_a_mais--) {
+                printf("0");
+            }
+            printf("%d%s", matriz[i * n_colunas + j], j == n_colunas - 1 ? " |\n" : ", ");
+        }
+    }
 }
