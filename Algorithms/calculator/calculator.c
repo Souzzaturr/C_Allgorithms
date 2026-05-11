@@ -4,6 +4,7 @@
 
 struct operation {
     char operation;
+    int withParenteses;
     int priority;
     struct value *value_right;
     struct value *value_left;
@@ -15,6 +16,123 @@ struct value {
     struct operation *operation_right;
     struct operation *operation_left;
 };
+
+
+struct value_node {
+    struct value *value;
+    struct value *prev;
+    struct value *prox;
+};
+
+
+struct values_list {
+    struct value_node *first_node;
+    struct value_node *last_node;
+};
+
+
+struct operation_node {
+    struct operation *operation;
+    struct operation_node *prox;
+    struct operation_node *prev;
+};
+
+
+struct operations_list {
+    struct operation_node *first_node;
+    struct operation_node *last_node;
+    struct operations_list *prox;
+    struct operations_list *prev;
+    int withParenteses;
+    int priority;
+};
+
+
+struct calculation_structure {
+    struct operations_list *operations_list_first;
+    struct values_list *values_list;
+};
+
+
+void add_value(struct value *value, struct calculation_structure *calculation_structure) {
+    struct value_node *node = malloc(sizeof(struct value_node));
+    node->value = value;
+    node->prox = NULL;
+    
+    calculation_structure->values_list->last_node->prox = node;
+    node->prev = calculation_structure->values_list->last_node;
+    calculation_structure->values_list->last_node = node;
+}
+
+
+void add_operation(struct operation *operation, struct calculation_structure *calculation_structure) {
+    struct operation_node *node = malloc(sizeof(struct operation_node));
+    node->operation = operation;
+    node->prox = NULL;
+
+    struct operations_list *temp = calculation_structure->operations_list_first;
+
+    if (temp == NULL) {
+        struct operations_list *list_node = malloc(sizeof(struct operations_list));
+        list_node->first_node = node;
+        list_node->last_node = node;
+        list_node->prox = NULL;
+        list_node->withParenteses = node->operation->withParenteses;
+        list_node->priority = node->operation->priority;
+
+        calculation_structure->operations_list_first = list_node;
+
+        return;
+    }
+
+    struct operations_list *prev = temp;
+
+    while (temp != NULL) {
+        if (node->operation->withParenteses == temp->withParenteses && node->operation->priority == temp->priority) {
+            node->prev = temp->last_node;
+            temp->last_node->prox = node;
+            temp->last_node = node;
+
+            return;
+        }
+
+        if (node->operation->withParenteses > temp->withParenteses || node->operation->withParenteses == temp->withParenteses && node->operation->priority > temp->priority) {
+            struct operations_list *list = malloc(sizeof(struct operations_list));
+            list->first_node = node;
+            list->last_node = node;
+            list->prev = (temp != prev) ? prev : NULL;
+            list->prox = temp;
+            list->withParenteses = node->operation->withParenteses;
+            list->priority = node->operation->priority;
+
+            temp->prev = list;
+
+            if (temp != prev) {
+                prev->prox = list;
+
+            } else {
+                calculation_structure->operations_list_first = list;
+            }
+
+            return;
+        }
+
+        if (prev != temp) {
+            prev = temp;
+        }
+
+        temp = temp->prox;
+    }
+
+    struct operations_list *list = malloc(sizeof(struct operations_list));
+    list->first_node = node;
+    list->last_node = node;
+    list->withParenteses = node->operation->withParenteses;
+    list->priority = node->operation->priority;
+    list->prox = NULL;
+    list->prev = prev;
+    prev->prox = list;
+}
 
 
 void resolve_operations(struct operation *operations[], int sizeOfArray) {
