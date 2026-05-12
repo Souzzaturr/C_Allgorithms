@@ -20,8 +20,8 @@ struct value {
 
 struct value_node {
     struct value *value;
-    struct value *prev;
-    struct value *prox;
+    struct value_node *prev;
+    struct value_node *prox;
 };
 
 
@@ -135,37 +135,43 @@ void add_operation(struct operation *operation, struct calculation_structure *ca
 }
 
 
-void resolve_operations(struct operation *operations[], int sizeOfArray) {
-    for (int i = 0; i < sizeOfArray; i++) {
+void resolve_operations(struct operations_list *list) {
+    struct operation_node *node = list->first_node;
+    struct operation_node *temp;
+
+    while (node != NULL) {
         struct value *newValue = malloc(sizeof(struct value));
-        newValue->operation_left = operations[i]->value_left->operation_left;
-        if (operations[i]->value_left->operation_left != NULL) {
-            operations[i]->value_left->operation_left->value_right = newValue;
+        newValue->operation_left = node->operation->value_left->operation_left;
+        if (node->operation->value_left->operation_left != NULL) {
+            node->operation->value_left->operation_left->value_right = newValue;
         }
-        newValue->operation_right = operations[i]->value_right->operation_right;
-        if (operations[i]->value_right->operation_right != NULL) {
-            operations[i]->value_right->operation_right->value_left = newValue;
+        newValue->operation_right = node->operation->value_right->operation_right;
+        if (node->operation->value_right->operation_right != NULL) {
+            node->operation->value_right->operation_right->value_left = newValue;
         }
 
-        int value1 = operations[i]->value_left->value;
-        int value2 = operations[i]->value_right->value;
+        int value1 = node->operation->value_left->value;
+        int value2 = node->operation->value_right->value;
 
-        if (operations[i]->operation == '+') {
+        if (node->operation->operation == '+') {
             newValue->value = value1 + value2;
 
-        } else if (operations[i]->operation == '-') {
+        } else if (node->operation->operation == '-') {
             newValue->value = value1 - value2;
 
-        } else if (operations[i]->operation == '*') {
+        } else if (node->operation->operation == '*') {
             newValue->value = value1 * value2;
 
-        } else if (operations[i]->operation == '/') {
+        } else if (node->operation->operation == '/') {
             newValue->value = value1 / value2;
         }
 
-        free(operations[i]->value_left);
-        free(operations[i]->value_right);
-        free(operations[i]);
+        temp = node;
+        node = node->prox;
+
+        free(temp->operation->value_left);
+        free(temp->operation->value_right);
+        free(temp->operation);
     }
 }
 
@@ -215,7 +221,7 @@ int main(int argc, char *argv[]) {
 
     value1->operation_left = &result;
 
-    resolve_operations(operations, 3);
+    resolve_operations(operations);
 
     printf("The result of \"5 + 2 - 13 + 20\" is: %d\n", result.value_right->value);
 
