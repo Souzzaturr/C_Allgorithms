@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 struct operation {
@@ -12,7 +13,7 @@ struct operation {
 
 
 struct value {
-    int value;
+    double value;
     struct operation *operation_right;
     struct operation *operation_left;
 };
@@ -51,7 +52,38 @@ struct operations_list {
 struct calculation_structure {
     struct operations_list *operations_list_first;
     struct values_list *values_list;
+    struct value *calculation;
 };
+
+
+void add_value(struct value *value, struct calculation_structure *calculation_structure);
+void add_operation(struct operation *operation, struct calculation_structure *calculation_structure);
+void add_calculation(char *character, int priority, int withParenteses, struct calculation_structure *calculation_structure);
+void resolve_operations(struct operations_list *list);
+int is_operation(char character);
+char * operationToStr(char operation);
+struct calculation_structure * reader(char *string);
+
+
+/* Main function */
+int main(int argc, char *argv[]) {
+    if (argc == 1) {
+        printf("Argument calculation is needed!\n");
+
+        return 1;
+    }
+
+    if (argc > 2) {
+        printf("Many arguments inserted, only one is necessary!\n");
+
+        return 1;
+    }
+
+    // Resolution
+    printf("%s\n", argv[1]);
+
+    return 0;
+}
 
 
 void add_value(struct value *value, struct calculation_structure *calculation_structure) {
@@ -135,6 +167,57 @@ void add_operation(struct operation *operation, struct calculation_structure *ca
 }
 
 
+void add_calculation(char *str, int priority, int withParenteses, struct calculation_structure *calculation_structure) {
+    struct value *value;
+    struct operation *operation;
+    struct operation *temp1;
+    struct value *temp2;
+
+    if (strlen(str) == 1 && (*str == '+' || *str == '-' || *str == '*' || *str == '/')) {
+        operation = malloc(sizeof(struct operation));
+        operation->operation = *str;
+        operation->priority = priority;
+        operation->withParenteses = withParenteses;
+        operation->value_right = NULL;
+
+        temp2 = calculation_structure->calculation;
+        
+        while (temp2->operation_right != NULL || temp1 != NULL) {
+            temp1 = temp2->operation_right;
+            temp2 = temp1->value_right;
+        }
+
+        temp2->operation_right = operation;
+        operation->value_left = temp2;
+
+        add_operation(operation, calculation_structure);
+
+        return;
+    }
+
+    value = malloc(sizeof(struct value));
+    value->value = atof(str);
+    value->operation_right = NULL;
+
+    if (calculation_structure->calculation == NULL) {
+        calculation_structure->calculation = value;
+
+    } else {
+        temp1 = calculation_structure->calculation->operation_right;
+
+        while (temp1->value_right != NULL || temp2 != NULL) {
+            temp2 = temp1->value_right;
+            temp1 = temp2->operation_right;
+        }
+
+        temp1->value_right = value;
+        value->operation_left = temp1;
+    }
+
+    add_value(value, calculation_structure);
+}
+
+
 void resolve_operations(struct operations_list *list) {
     struct operation_node *node = list->first_node;
     struct operation_node *temp;
@@ -176,56 +259,87 @@ void resolve_operations(struct operations_list *list) {
 }
 
 
-/* Test */
-int main(int argc, char *argv[]) {
-    struct value *value1 = malloc(sizeof(struct value));
-    struct operation *operation1 = malloc(sizeof(struct operation));
-    struct value *value2 = malloc(sizeof(struct value));
-    struct operation *operation2 = malloc(sizeof(struct operation));
-    struct value *value3 = malloc(sizeof(struct value));
-    struct operation *operation3 = malloc(sizeof(struct operation));
-    struct value *value4 = malloc(sizeof(struct value));
-    struct operation result;
-    struct operation *operations[] = {operation1, operation2, operation3};
+struct calculation_structure * reader(char *calculation) {
+    struct calculation_structure *calcStruct;
+    char *valueBuffer;
+    int priority;
+    int openedParentesesCount = 0;
+    int parenteses;
+    int calculationSize = strlen(calculation);
 
-    /* 5 + 2 - 13 + 20 */
+    for (int i = 0; i < calculationSize; i++) {
+        if (*(calculation + i) < 40 || *(calculation + i) == 44 || *(calculation + i) > 57) {
+            printf("Insert only numbers, point \".\", parenteses \"(\" \")\", and operation characters (\"+\", \"-\", \"*\", \"/\")!\n");
+            printf("Invalid character inserted: \"%c\"\n", *(calculation + i));
 
-    value1->value = 5;
-    value1->operation_right = operation1;
+            return NULL;
+        }
 
-    value2->value = 2;
-    value2->operation_left = operation1;
-    value2->operation_right = operation2;
+        if (i == 0 && is_operation(*(calculation + i)) || i == calculationSize - 1 && is_operation(*(calculation + i)) || is_operation(*(calculation + i)) && (is_operation(*(calculation + i - 1)) || is_operation(*(calculation + i + 1)))) {
+            printf("Sequence with more than one operation in a row is not allowed!\n");
 
-    value3->value = 13;
-    value3->operation_left = operation2;
-    value3->operation_right = operation3;
+            return NULL;
+        }
 
-    value4->value = 20;
-    value4->operation_left = operation3;
-    value4->operation_right = NULL;
+        if (*(calculation + i) == '.' && (*(calculation + i - 1) == '.' || *(calculation + i + 1) == '.')) {
+            printf("Sequence with more than one point \".\" in a row is not allowed!\n");
 
-    operation1->operation = '+';
-    operation1->value_left = value1;
-    operation1->value_right = value2;
+            return NULL;
+        }
 
-    operation2->operation = '-';
-    operation2->value_left = value2;
-    operation2->value_right = value3;
-    
-    operation3->operation = '+';
-    operation3->value_left = value3;
-    operation3->value_right = value4;
+        if (*(calculation + i) == '(') {
+            openedParentesesCount++;
 
-    result.value_right = value1;
+        } else if (*(calculation + i) == ')') {
+            openedParentesesCount--;
+        }
+    }
 
-    value1->operation_left = &result;
+    if (openedParentesesCount != 0) {
+        printf("Parenteses not opened or closed correctly!\n");
 
-    resolve_operations(operations);
+        return NULL;
+    }
 
-    printf("The result of \"5 + 2 - 13 + 20\" is: %d\n", result.value_right->value);
+    calcStruct = malloc(sizeof(struct calculation_structure));
+    calcStruct->calculation = NULL;
+    calcStruct->operations_list_first = NULL;
+    calcStruct->values_list = NULL;
 
-    free(result.value_right);
+    for (int i = 0; i < calculationSize; i++) {
+        if (is_operation(*(calculation + i))) {
 
+            if (*(calculation + i) == '+' || *(calculation + i) == '-') {
+                priority = 0;
+
+            } else if (*(calculation + i) == '*' || *(calculation + i) == '/') {
+                priority = 1;
+            }
+
+            add_calculation(operationToStr(*(calculation + i)), priority, parenteses, calcStruct);
+        }
+
+        if (*(calculation + i) == '(') {
+            parenteses++;
+
+        } else if (*(calculation + i) == ')') {
+            parenteses--;
+        }
+
+        // a adicionar adição de values...
+    }
+}
+
+
+int is_operation(char character) {
+    if (character == '+' || character == '-' || character == '*' || character == '/') return 1;
     return 0;
+}
+
+
+char * operationToStr(char operation) {
+    char string[2];
+    string[0] = operation;
+
+    return string;
 }
